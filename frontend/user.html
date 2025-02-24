@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .profile-card {
+            background-color: white;
+            width: 100%;
+            max-width: 800px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .profile-card img {
+            border-radius: 50%;
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            margin-bottom: 20px;
+        }
+
+        .profile-card h1 {
+            margin: 10px 0;
+            font-size: 28px;
+            color: #333;
+        }
+
+        .profile-card p {
+            font-size: 16px;
+            color: #777;
+            margin: 5px 0;
+        }
+
+        .profile-card .info {
+            font-size: 18px;
+            color: #333;
+            margin-top: 20px;
+        }
+
+        .profile-card .info span {
+            font-weight: bold;
+        }
+
+        .buttons {
+            margin-top: 30px;
+        }
+
+        .buttons button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .buttons button:hover {
+            background-color: #0056b3;
+        }
+
+        .buttons .edit-btn {
+            background-color: #28a745;
+        }
+
+        .buttons .edit-btn:hover {
+            background-color: #218838;
+        }
+        .buttons .songs-btn:hover {
+            background-color: #1540ff;
+        }
+
+        .buttons .logout-btn {
+            background-color: #dc3545;
+        }
+
+        .buttons .logout-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="profile-card">
+        <!-- Профиль пользователя -->
+        <img id="profile-picture" src="https://via.placeholder.com/150" alt="Profile Picture">
+        <h1 id="username">Username</h1>
+        <p id="full-name">Full Name: John Doe</p>
+        <p id="email">Email: johndoe@example.com</p>
+        <p id="birth-date">Birth Date: 1990-01-01</p>
+        <div class="info">
+            <p><span>Role:</span> <span id="role">No Subscription</span></p>
+        </div>
+        
+        <div class="buttons">
+            <button class="songs-btn" onclick="ToLiked()">Мои песни</button>
+            <button class="edit-btn" onclick="editProfile()">Редактировать</button>
+            <button class="logout-btn" onclick="logout()">Выйти</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция для загрузки данных пользователя с сервера
+    function ToLiked(){
+        window.location.href = "saved-songs.html"
+    }
+    function loadUserData() {
+        let token = localStorage.getItem('jwt');
+        fetch('http://localhost:8080/user', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            }
+            
+        }) // Поменяйте URL на ваш API endpoint
+            .then(response => response.json())
+            .then(data => {
+                if (data) {
+                    // Заполнение данных на странице
+                    document.getElementById('username').textContent = data.username;
+                    document.getElementById('full-name').textContent = "Full Name: " + data.full_name;
+                    document.getElementById('email').textContent = "Email: " + data.email;
+                    document.getElementById('birth-date').textContent = "Birth Date: " + data.birth_date;
+                    document.getElementById('role').textContent = data.role;
+                    document.getElementById('profile-picture').src = data.profile_pic_url ;
+                    console.log(data.profile_pic_url);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке данных пользователя:', error);
+            });
+    }
+
+    // Симуляция функции загрузки данных при загрузке страницы
+    window.onload = loadUserData;
+
+    // Функция для редактирования профиля
+    function editProfile() {
+        
+        // Переход на страницу редактирования, например:
+         window.location.href = "edit_profile.html";
+    }
+
+    // Функция для выхода из аккаунта
+    function logout() {
+        localStorage.removeItem('jwt');
+        alert("Вы вышли из аккаунта");
+        window.location.href = "artists.html";
+        // Логика для выхода из аккаунта, например:
+         
+    }
+</script>
+
+</body>
+</html>

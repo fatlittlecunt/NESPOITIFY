@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Artist</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: bold;
+            display: block;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+        }
+
+        .form-group img {
+            max-width: 200px;
+            margin-top: 10px;
+        }
+
+        .form-group button {
+            padding: 12px 20px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .form-group button:disabled {
+            background-color: #ccc;
+        }
+
+        .form-group .cancel-button {
+            background-color: #f44336;
+        }
+
+        .form-group .cancel-button:hover {
+            background-color: #d32f2f;
+        }
+
+        .form-group button:hover {
+            background-color: #45a049;
+        }
+
+        .form-group .error {
+            color: red;
+            font-size: 12px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Редактирование артиста</h1>
+
+        <form id="edit-artist-form">
+            <div class="form-group">
+                <label for="artist-name">Имя артиста</label>
+                <input type="text" id="artist-name" name="artist-name" required>
+                <div class="error" id="name-error"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="artist-country">Страна</label>
+                <input type="text" id="artist-country" name="artist-country" required>
+            </div>
+
+            <div class="form-group">
+                <label for="artist-genre">Жанр</label>
+                <input type="text" id="artist-genre" name="artist-genre" required>
+            </div>
+
+            <div class="form-group">
+                <label for="artist-description">Описание</label>
+                <textarea id="artist-description" name="artist-description" rows="4" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="artist-picture">Картинка артиста</label>
+                <input type="file" id="artist-picture" name="artist-picture" accept="image/*">
+                <div class="error" id="picture-error"></div>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" id="save-button">Сохранить</button>
+                <button type="button" class="cancel-button" id="cancel-button" onclick=cancel()>Отмена</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function cancel(){
+            window.location.href=`artist.html?artist_id=${artistId}`;
+        }
+        // Получаем параметры URL (идентификатор артиста)
+        const urlParams = new URLSearchParams(window.location.search);
+        const artistId = urlParams.get('artist_id');
+        
+        if (!artistId) {
+            alert('Artist ID is missing in URL');
+            window.location.href = 'artists.html';
+        }
+
+        // Функция для загрузки информации об артисте
+        async function loadArtistData() {
+            try {
+                const response = await fetch(`http://localhost:8080/artist/${artistId}`);
+                const data = await response.json();
+
+                // Заполнение формы данными артиста
+                document.getElementById('artist-name').value = data.artist.artist_name;
+                document.getElementById('artist-country').value = data.artist.country;
+                document.getElementById('artist-genre').value = data.artist.genre;
+                document.getElementById('artist-description').value = data.artist.description;
+
+                if (data.artist.artist_picture) {
+                    const picturePreview = document.createElement('img');
+                    picturePreview.src = data.artist.artist_picture;
+                    document.querySelector('.form-group').appendChild(picturePreview);
+                }
+
+            } catch (error) {
+                console.error('Error loading artist data:', error);
+                alert('Error loading artist data');
+            }
+        }
+
+        // Функция для преобразования изображения в base64
+        function convertImageToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Функция для отправки изменений
+        async function saveArtistChanges(event) {
+            event.preventDefault();
+
+            // Собираем данные из формы
+            const formData = new FormData(document.getElementById('edit-artist-form'));
+            const artistName = formData.get('artist-name');
+            const artistCountry = formData.get('artist-country');
+            const artistGenre = formData.get('artist-genre');
+            const artistDescription = formData.get('artist-description');
+            const artistPicture = formData.get('artist-picture');
+
+            // Преобразуем картинку в base64, если она выбрана
+            let artistPictureBase64 = null;
+            if (artistPicture) {
+                artistPictureBase64 = await convertImageToBase64(artistPicture);
+            }
+
+            // Создаем JSON-объект
+            const data = {
+                artist_id: parseInt(artistId),
+                artist_name: artistName,
+                country: artistCountry,
+                genre: artistGenre,
+                description: artistDescription,
+                artist_picture: artistPictureBase64  // Добавляем картинку в формате base64
+            };
+            
+       
+            try {
+                const response = await fetch(`http://localhost:8080/edit_artist/${artistId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),  // Отправляем JSON
+                });
+
+                if (response.ok) {
+                    alert('Artist updated successfully');
+                    window.location.href = `artist.html?artist_id=${artistId}`;
+                } else {
+                    alert('Failed to update artist');
+                }
+            } catch (error) {
+                console.error('Error updating artist:', error);
+                alert('Error updating artist');
+            }
+        }
+
+        // Загрузка данных артиста при загрузке страницы
+        loadArtistData();
+
+        // Добавление обработчика для формы
+        document.getElementById('edit-artist-form').addEventListener('submit', saveArtistChanges);
+
+    </script>
+</body>
+</html>

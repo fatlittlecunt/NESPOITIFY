@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Artist</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-container h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-container input, 
+        .form-container textarea, 
+        .form-container button {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .form-container textarea {
+            height: 100px;
+            resize: none;
+        }
+
+        .form-container button {
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .form-container button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Добавить артиста</h1>
+        <form id="add-artist-form">
+            <label for="artist-name">Имя артиста</label>
+            <input type="text" id="artist-name" name="artist_name" required placeholder="Введите имя">
+
+            <label for="country">Страна происхождения</label>
+            <input type="text" id="country" name="country" required placeholder="Введите страну">
+
+            <label for="genre">Жанр</label>
+            <input type="text" id="genre" name="genre" required placeholder="Введите жанр">
+
+            <label for="description">Описание</label>
+            <textarea id="description" name="description" required placeholder="Введите описание"></textarea>
+
+            <label for="artist-picture">Картинка артиста</label>
+            <input type="file" id="artist-picture" name="artist_picture" accept="image/*">
+
+            <button type="submit">Добавить</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('add-artist-form').addEventListener('submit', function (event) {
+            event.preventDefault(); // Предотвращает перезагрузку страницы
+            
+            const name = document.getElementById('artist-name').value;
+            const country = document.getElementById('country').value;
+            const genre = document.getElementById('genre').value;
+            const description = document.getElementById('description').value;
+            const fileInput = document.getElementById('artist-picture');
+
+            // Преобразование изображения в Base64
+            if (fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const pictureBase64 = e.target.result; // Base64 строка
+
+                    // Отправляем данные на сервер
+                    sendArtistData(name, country, genre, description, pictureBase64);
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                // Если изображение не выбрано, отправляем без него
+                sendArtistData(name, country, genre, description, null);
+            }
+        });
+
+        // Функция отправки данных на сервер
+        function sendArtistData(name, country, genre, description, pictureBase64) {
+            const artistData = {
+                artist_name: name,
+                country: country,
+                genre: genre,
+                description: description,
+                artist_picture: pictureBase64 // Добавляем Base64 строку
+            };
+
+            fetch('http://localhost:8080/add_artist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwt')}` // JWT-токен
+                },
+                body: JSON.stringify(artistData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Не удалось добавить артиста');
+                }
+                alert('Артист успешно добавлен!');
+                document.getElementById('add-artist-form').reset(); // Очистка формы
+            })
+            .catch(error => {
+                console.error('Ошибка при добавлении артиста:', error);
+                alert('Произошла ошибка при добавлении артиста.');
+            });
+        }
+    </script>
+</body>
+</html>

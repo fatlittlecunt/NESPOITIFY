@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+        }
+        .container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-group img {
+            display: block;
+            max-width: 100px;
+            max-height: 100px;
+            margin: 10px auto;
+            border-radius: 50%;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+        .buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .save-btn {
+            background-color: #28a745;
+        }
+        .cancel-btn {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Edit Profile</h2>
+        <div class="form-group">
+            <label for="full-name">Full Name</label>
+            <input type="text" id="full-name" placeholder="Enter your full name">
+        </div>
+        <div class="form-group">
+            <label for="nickname">Nickname</label>
+            <input type="text" id="nickname" placeholder="Enter your nickname">
+        </div>
+        <div class="form-group">
+            <label for="profile-picture">Profile Picture</label>
+            <input type="file" id="profile-picture" accept="image/*" onchange="previewImage(event)">
+            <img id="preview" src="" alt="Profile Preview">
+        </div>
+        <div class="buttons">
+            <button class="save-btn" onclick="saveChanges()">Save</button>
+            <button class="cancel-btn" onclick="cancelEdit()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // Функция для предварительного просмотра изображения
+        function previewImage(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('preview');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.src = '';
+            }
+        }
+
+        // Загрузка данных пользователя
+        function loadUserData() {
+            let token = localStorage.getItem('jwt');
+
+        fetch('http://localhost:8080/user', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            }
+            
+        }) // Поменяйте URL на ваш API endpoint
+            .then(response => response.json())
+            .then(data => {
+                if (data) {
+                document.getElementById('full-name').value = data.full_name;
+                document.getElementById('nickname').value = data.username;
+                if (data.profile_pic_url) {
+                    document.getElementById('preview').src = data.profile_pic_url;
+                    
+                }
+            }
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке данных пользователя:', error);
+            });
+            
+            
+        }
+
+        // Сохранение изменений
+        function saveChanges() {
+            const full_name = document.getElementById('full-name').value;
+            const username = document.getElementById('nickname').value;
+            const profilePictureInput = document.getElementById('profile-picture');
+            let profilePicture = document.getElementById('preview').src;
+
+            // Если загружен новый файл, сохраняем его в base64
+            if (profilePictureInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    profilePicture = e.target.result;
+
+                    // Отправляем обновленные данные
+                    sendUpdatedData(full_name, username, profilePicture);
+                };
+                reader.readAsDataURL(profilePictureInput.files[0]);
+            } else {
+                sendUpdatedData(full_name, username, profilePicture);
+            }
+        }
+
+        // Отправка данных на сервер
+        function sendUpdatedData(fullName, nickname, profilePicture) {
+            console.log(fullName);
+            console.log(nickname);
+            console.log(profilePicture);
+            const updatedUser = { full_name: fullName, username: nickname, profile_pic_url: profilePicture };
+
+            fetch('http://localhost:8080/update_profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwt')}` // JWT-токен
+                },
+                body: JSON.stringify(updatedUser)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update profile');
+                }
+                return ;
+            })
+            .then(data => {
+                alert('Profile updated successfully!');
+                window.location.href = 'user.html'; // Переход обратно на страницу профиля
+            })
+            .catch(error => {
+                console.error('Error updating profile:', error);
+                alert('Error updating profile');
+            });
+        }
+
+        // Отмена изменений
+        function cancelEdit() {
+            window.location.href = 'user.html'; // Переход обратно на страницу профиля
+        }
+
+        // Загрузка данных при открытии страницы
+        loadUserData();
+    </script>
+</body>
+</html>

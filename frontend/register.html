@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Form</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f3f3f3;
+        }
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 300px;
+        }
+        .form-container h1 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .form-container label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        .form-container input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .form-container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .form-container button:hover {
+            background-color: #0056b3;
+        }
+        .error-message {
+            color: red;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+            display: none; /* Скрыто по умолчанию */
+        }
+        .success-message {
+            color: green;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none; /* Скрыто по умолчанию */
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Register</h1>
+        <label for="username">Username:</label>
+        <input type="text" id="username" placeholder="Enter your username" required>
+
+        <label for="full_name">Full name:</label>
+        <input type="text" id="full_name" placeholder="Enter your username" required>
+        
+        <label for="email">Email:</label>
+        <input type="email" id="email" placeholder="Enter your email" required>
+        
+        <label for="password">Password:</label>
+        <input type="password" id="password" placeholder="Enter your password" required>
+        
+        <label for="birthdate">Birth Date:</label>
+        <input type="date" id="birthdate" required>
+        
+        <button onclick="sendData()">Register</button>
+        <button onclick="redirectToLogin()">Login</button>
+        <p class="error-message" id="error-message">Не удалось зарегестрироваться</p>
+        <p class="success-message" id="success-message">Пользователь зарегистрирован</p>
+
+        
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="email_validation.js"></script>
+    <script src="password_validation.js"></script>
+    <script>
+        function sendData() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const birthdate = document.getElementById('birthdate').value;
+            const full_name = document.getElementById('full_name').value;
+            let err_msg = "Не удалось зарегестрироваться";
+            let errr_msg = "Все поля обязательны к заполнению";
+
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            const emailError = validateEmail(email);
+            const passwordError = validatePassword(password);
+
+            if (emailError) {
+                errorMessage.innerHTML = emailError;
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            if (passwordError) {
+                errorMessage.innerHTML = passwordError;
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            if (!username || !email || !password || !birthdate) {
+                errorMessage.innerHTML = errr_msg;
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            // Создаем JSON-объект
+            const data = {
+                username: username,
+                email: email,
+                password_hash: CryptoJS.SHA256(password).toString(),
+                birth_date: birthdate,
+                full_name: full_name
+            };
+
+            // Отправляем POST-запрос
+            fetch('http://localhost:8080/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    successMessage.style.display = 'block';
+                    return;
+                } else {
+                    throw new Error('Ошибка сети');
+                }
+            })
+            .then(data => {
+                console.log('Успех:', data);
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                errorMessage.innerHTML = err_msg;
+                errorMessage.style.display = 'block';
+            });
+        }
+
+        function redirectToLogin() {
+            window.location.href = 'auth.html'; // Перенаправление на register.html
+        }
+    </script>
+</body>
+</html>

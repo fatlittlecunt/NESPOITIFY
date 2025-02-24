@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .artist-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .artist-picture img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ccc;
+        }
+        .artist-details h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #333;
+        }
+        .artist-details p {
+            margin: 5px 0;
+            color: #555;
+        }
+        .song-list {
+            margin-top: 20px;
+        }
+        .song-list h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .song-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .song-item div {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .song-item .title, 
+        .song-item .duration, 
+        .song-item .popularity {
+            min-width: 200px;
+        }
+        .song-item .duration, 
+        .song-item .popularity {
+            font-size: 14px;
+            color: #666;
+        }
+        .progress-container {
+            width: 100%;
+            height: 5px;
+            background-color: #ddd;
+            margin-top: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background-color: #4caf50;
+            transition: width 0.1s;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+        .controls button {
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .controls button:disabled {
+            background-color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="artist-header">
+            <div class="artist-picture">
+                <img id="artist-picture" src="" alt="Artist Picture">
+            </div>
+            <div class="artist-details">
+                <h1 id="artist-name"></h1>
+                <p><strong>Country:</strong> <span id="artist-country"></span></p>
+                <p><strong>Genre:</strong> <span id="artist-genre"></span></p>
+                <p id="artist-description"></p>
+            </div>
+        </div>
+
+        <div class="song-list">
+            <h2>Songs</h2>
+            <div id="songs-container">
+                <!-- Songs will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Bar container is placed at the bottom of the page -->
+    <div class="progress-container">
+        <div id="progress-bar" class="progress-bar"></div>
+    </div>
+    <script src="is_manager.js"></script>
+    <script src="play_audio.js"></script>
+
+
+    <script>
+        let audioPlayer;
+        let isPlaying = false;
+        let currentSongUrl = '';
+        let currentProgressBar = null;
+        let currentButton = null;  // Track the current play button
+        let res = 0;
+
+        // Функция для загрузки данных об артисте и песнях
+        async function loadArtist(artistId) {
+            try {
+
+
+                
+                const response = await fetch(`http://localhost:8080/artist/${artistId}`);
+                const data = await response.json();
+
+                // Заполнение информации об артисте
+                document.getElementById('artist-name').textContent = data.artist.artist_name;
+                document.getElementById('artist-country').textContent = data.artist.country;
+                document.getElementById('artist-genre').textContent = data.artist.genre;
+                document.getElementById('artist-description').textContent = data.artist.description;
+                document.getElementById('artist-picture').src = data.artist.artist_picture;
+
+                // Заполнение списка песен
+                const songsContainer = document.getElementById('songs-container');
+                songsContainer.innerHTML = ''; // Очистить предыдущие данные
+                const isManager = await is_manager();
+
+        data.songs.forEach((song, index) => {
+            const songItem = document.createElement('div');
+            songItem.classList.add('song-item');
+            songItem.innerHTML = `
+                <div class="title">
+                    <strong>${song.song_title}</strong>
+                </div>
+                <div class="duration">Duration: ${song.duration}s</div>
+                <div class="popularity">Popularity: ${song.song_popularity}</div>
+                <button class="play-button" data-audio="${song.song_url}" data-id="${song.song_id}">
+                    ▶ Play
+                </button>
+                <button class="like-button" data-id="${song.song_id}">
+                    ❤️ Like
+                </button>
+                <div class="progress-container">
+                    <div class="progress-bar" data-index="${index}"></div>
+                </div>
+            `;
+
+            // Если пользователь менеджер, добавляем кнопку "Удалить песню"
+            if (isManager) {
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = '🗑 Удалить';
+                deleteButton.classList.add('delete-song-button');
+                deleteButton.dataset.id = song.song_id;
+
+                // Добавляем обработчик удаления песни
+                deleteButton.addEventListener('click', async () => {
+                    const confirmDelete = confirm('Вы уверены, что хотите удалить эту песню? Это действие необратимо.');
+                    if (confirmDelete) {
+                        await deleteSong(song.song_id);
+                    }
+                });
+
+                songItem.appendChild(deleteButton);
+            }
+
+            songsContainer.appendChild(songItem);
+        });
+
+                // Добавляем обработчик для кнопок "Play"
+                const playButtons = document.querySelectorAll('.play-button');
+                playButtons.forEach(button => {
+                    button.addEventListener('click', event => {
+                        const audioUrl = event.target.dataset.audio;
+                        const songID = event.target.dataset.id;
+                        const progressBar = event.target.closest('.song-item').querySelector('.progress-bar');
+                        playAudio(audioUrl, progressBar, event.target, songID);
+                    });
+                });
+
+                // Добавляем обработчик для кнопок "Like"
+                const likeButtons = document.querySelectorAll('.like-button');
+                likeButtons.forEach(button => {
+                    button.addEventListener('click', async (event) => {
+                        const songId = event.target.dataset.id;
+                        await likeSong(songId);
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading artist data:', error);
+            }
+        }
+
+        // Функция для отправки лайка на сервер
+        
+
+        // Пример: Загрузка информации об артисте
+        const urlParams = new URLSearchParams(window.location.search);
+        const artistId = urlParams.get('artist_id');
+        if (artistId) {
+            loadArtist(artistId);
+        } else {
+            alert('Artist ID is missing in URL');
+        }
+
+
+        is_manager().then(isManager => {
+            if (isManager) {
+                const artistHeader = document.querySelector('.artist-details');
+
+        // Создаем контейнер для кнопок
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.gap = '10px';
+        buttonContainer.style.marginTop = '10px';
+
+        // Создаем кнопку "Редактировать"
+        const editButton = document.createElement('button');
+        editButton.textContent = 'Редактировать';
+        editButton.dataset.id = artistId;
+        editButton.style.padding = '10px';
+        editButton.style.backgroundColor = '#4caf50';
+        editButton.style.color = 'white';
+        editButton.style.border = 'none';
+        editButton.style.borderRadius = '5px';
+        editButton.style.cursor = 'pointer';
+        editButton.addEventListener('click', () => {
+            // Редирект на страницу редактирования
+            window.location.href = `edit-artist.html?artist_id=${artistId}`;
+        });
+
+        // Создаем кнопку "Удалить"
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Удалить';
+        deleteButton.dataset.id = artistId;
+        deleteButton.style.padding = '10px';
+        deleteButton.style.backgroundColor = '#f44336';
+        deleteButton.style.color = 'white';
+        deleteButton.style.border = 'none';
+        deleteButton.style.borderRadius = '5px';
+        deleteButton.style.cursor = 'pointer';
+        deleteButton.addEventListener('click', async () => {
+            if (confirm('Вы уверены, что хотите удалить эту группу?')) {
+                await deleteArtist(artistId);
+            }
+        });
+
+        // Создаем кнопку "Добавить песню"
+        const addSongButton = document.createElement('button');
+        addSongButton.textContent = 'Добавить песню';
+        addSongButton.dataset.id = artistId;
+        addSongButton.style.padding = '10px';
+        addSongButton.style.backgroundColor = '#2196f3';
+        addSongButton.style.color = 'white';
+        addSongButton.style.border = 'none';
+        addSongButton.style.borderRadius = '5px';
+        addSongButton.style.cursor = 'pointer';
+        addSongButton.addEventListener('click', () => {
+            // Редирект на страницу добавления песни
+            window.location.href = `add-song.html?artist_id=${artistId}`;
+        });
+
+        // Добавляем кнопки в контейнер
+        buttonContainer.appendChild(editButton);
+        buttonContainer.appendChild(deleteButton);
+        buttonContainer.appendChild(addSongButton);
+
+        // Добавляем контейнер к artistHeader
+        artistHeader.appendChild(buttonContainer);
+            }
+        } 
+        );
+
+        async function deleteArtist(artistId) {
+    // Всплывающее сообщение подтверждения
+    const confirmDelete = confirm('Вы уверены, что хотите удалить эту группу? Это действие необратимо.');
+
+    if (!confirmDelete) {
+        // Если пользователь нажал "Нет", ничего не делаем
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:8080/delete_artist/${artistId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            }
+        });
+
+        if (response.ok) {
+            alert('Группа успешно удалена.');
+            window.location.href = 'artists.html'; // Возвращаемся к списку артистов
+        } else {
+            alert('Ошибка при удалении группы.');
+        }
+    } catch (error) {
+        console.error('Ошибка при удалении группы:', error);
+        alert('Произошла ошибка при удалении. Пожалуйста, попробуйте снова.');
+    }
+}
+
+async function deleteSong(SongID) {
+    // Всплывающее сообщение подтверждения
+    const confirmDelete = confirm('Вы уверены, что хотите удалить эту песню? Это действие необратимо.');
+
+    if (!confirmDelete) {
+        // Если пользователь нажал "Нет", ничего не делаем
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:8080/delete_song/${SongID}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
+            }
+        });
+
+        if (response.ok) {
+            alert('Песня успешно удалена.');
+            window.location.href = 'artists.html'; // Возвращаемся к списку артистов
+        } else {
+            alert('Ошибка при удалении песни.');
+        }
+    } catch (error) {
+        console.error('Ошибка при удалении песни:', error);
+        alert('Произошла ошибка при удалении. Пожалуйста, попробуйте снова.');
+    }
+}
+    </script>
+</body>
+</html>

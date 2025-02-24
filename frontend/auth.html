@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Form</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f3f3f3;
+        }
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 300px;
+        }
+        .form-container h1 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .form-container label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        .form-container input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .form-container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .form-container button:hover {
+            background-color: #0056b3;
+        }
+        .form-container a {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+            color: #000;
+            text-decoration: none;
+        }
+        .form-container .error {
+            color: red;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Login</h1>
+        <div id="error-message" class="error" style="display: none;"></div>
+        <label for="email">Email:</label>
+        <input type="email" id="email" placeholder="Enter your email" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" placeholder="Enter your password" required>
+        <button onclick="sendData()">Login</button>
+        <a href="register.html">Нет аккаунта? Зарегистрироваться</a>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        function sendData() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('error-message');
+
+            // Скрываем предыдущее сообщение об ошибке
+            errorMessage.style.display = 'none';
+            errorMessage.textContent = '';
+
+            // Создаем JSON-объект
+            const data = {
+                email: email,
+                password: password
+            };
+
+            // Отправляем POST-запрос
+            fetch('http://localhost:8080/auth', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else if (response.status === 401) {
+                    throw new Error('Неверный адрес электронной почты или пароль');
+                } else {
+                    throw new Error('Неверный адрес электронной почты или пароль');
+                }
+            })
+            .then(data => {
+                console.log('Успех:', data);
+                const token = data.access_token; // Извлекаем токен
+                if (!token) {
+                    throw new Error('Token not found in response');
+                }
+
+                // Устанавливаем куки
+                document.cookie = `jwt_ms=${token}`;
+
+                console.log('Token saved in localstorage:', token);
+                localStorage.setItem('jwt', token);
+                window.location.href = 'artists.html'; // Перенаправление на artists.html
+
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
+            });
+        }
+    </script>
+</body>
+</html>

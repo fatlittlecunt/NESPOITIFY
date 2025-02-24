@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .artist-header {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .artist-picture img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ccc;
+        }
+        .artist-details h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #333;
+        }
+        .artist-details p {
+            margin: 5px 0;
+            color: #555;
+        }
+        .song-list {
+            margin-top: 20px;
+        }
+        .song-list h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .song-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .song-item div {
+            margin-right: 15px;
+        }
+        .song-item .duration {
+            font-size: 14px;
+            color: #666;
+        }
+        .song-item .popularity {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="artist-header">
+            <div class="artist-picture">
+                <img id="artist-picture" src="" alt="Artist Picture">
+            </div>
+            <div class="artist-details">
+                <h1 id="artist-name"></h1>
+                <p><strong>Country:</strong> <span id="artist-country"></span></p>
+                <p><strong>Genre:</strong> <span id="artist-genre"></span></p>
+                <p id="artist-description"></p>
+            </div>
+        </div>
+
+        <div class="song-list">
+            <h2>Songs</h2>
+            <div id="songs-container">
+                <!-- Songs will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="song-list">
+        <h2>Songs</h2>
+        <div id="songs-container">
+            <!-- Songs will be dynamically inserted here -->
+        </div>
+    </div>
+    
+    <script>
+        function loadArtist(artistId) {
+            fetch(`http://localhost:8080/artist/${artistId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Populate artist details
+                    document.getElementById('artist-name').textContent = data.artist.artist_name;
+                    document.getElementById('artist-country').textContent = data.artist.country;
+                    document.getElementById('artist-genre').textContent = data.artist.genre;
+                    document.getElementById('artist-description').textContent = data.artist.description;
+                    document.getElementById('artist-picture').src = data.artist.artist_picture;
+    
+                    // Populate song list
+                    const songsContainer = document.getElementById('songs-container');
+                    songsContainer.innerHTML = ''; // Clear previous content
+                    data.songs.forEach((song, index) => {
+                        const songItem = document.createElement('div');
+                        songItem.classList.add('song-item');
+                        songItem.innerHTML = `
+                            <div class="title"><strong>${song.song_title}</strong></div>
+                            <div class="duration">Duration: ${song.duration}s</div>
+                            <div class="popularity">Popularity: ${song.song_popularity}</div>
+                            <button class="play-button" data-audio="${song.song_url}">
+                                ▶ Play
+                            </button>
+                            <div class="progress-container">
+                                <div id="progress-bar-${index}" class="progress-bar"></div>
+                            </div>
+                        `;
+                        songsContainer.appendChild(songItem);
+                    });
+    
+                    // Add event listeners for play buttons
+                    const playButtons = document.querySelectorAll('.play-button');
+                    playButtons.forEach(button => {
+                        button.addEventListener('click', event => {
+                            const audioUrl = event.target.dataset.audio;
+                            playAudio(audioUrl);
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading artist data:', error);
+                });
+        }
+    
+        function playAudio(url) {
+            // Create or reuse an audio element
+            let audioPlayer = document.getElementById('audio-player');
+            if (!audioPlayer) {
+                audioPlayer = document.createElement('audio');
+                audioPlayer.id = 'audio-player';
+                document.body.appendChild(audioPlayer);
+            }
+            audioPlayer.src = url;
+            audioPlayer.play();
+        }
+    
+        // Example: Fetch artist details
+        const urlParams = new URLSearchParams(window.location.search);
+        const artistId = urlParams.get('artist_id');
+        if (artistId) {
+            loadArtist(artistId);
+        } else {
+            alert('Artist ID is missing in URL');
+        }
+    </script>
+    
+</body>
+</html>
